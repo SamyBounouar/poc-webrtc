@@ -17,6 +17,38 @@ if (IS_CHROME) {
   RTCSessionDescription = mozRTCSessionDescription;
 }
 
+let socket = io.connect('http://localhost:8080');
+
+$(function () {
+  
+  startPeer(true);
+})
+
+
+$(document).on('CONNECT_CHAT', function (e, data) {
+  socket.emit('SEND_SDP', data.sdp);
+})
+
+$(document).on('DISPLAY_CHAT_ROOM', function (e, data) {
+  debugger
+  data.forEach(function (sdp) {
+    startPeer(false);
+  })
+})
+
+ socket.on('SUBSCRIBE_SDP', function (listSDP) {
+    console.log('SUBSCRIBE_SDP', listSDP);
+
+    listSDP.forEach(function (sdp) {
+      startPeer(false);
+    })
+  });
+
+  socket.on('NEW_CLIENT', function (sdp) {
+      console.log('NEW CLIENT', sdp);
+      startPeer(false);
+  });
+
 let p;
 
 function bindEvents(p) {
@@ -25,23 +57,37 @@ function bindEvents(p) {
   });
 
   p.on('signal', function(data) {
-      document.querySelector('#offer').textContent = JSON.stringify(data);
+    $(document).trigger('CONNECT_CHAT', data);
   });
 
   p.on('stream', function(stream) {
-      let video = document.querySelector('#receiver-video');
+    console.log('on stream');
+
+      /*let video = document.querySelector('#receiver-video');
       video.volume = 0;
       video.src = window.URL.createObjectURL(stream);
-      video.play();
+      video.play();*/
   });
 
-  document.querySelector('#incoming').addEventListener('submit', function(e) {
-    e.preventDefault();
-    var offerJSON = JSON.parse(e.target.querySelector('textarea').value);
-    p.signal(offerJSON);
-  });
+  //document.querySelector('#incoming').addEventListener('submit', function(e) {
+    //e.preventDefault();
+    //var offerJSON = JSON.parse(e.target.querySelector('textarea').value);
+    //p.signal(offerJSON);
+  //});
 }
 
+var id = 0;
+function createVideo() {
+  $('#tchat-room').append('<div class="col-sm-3"><video width="200px" id="video-' + id + '"></video></div>');
+
+  return 'video-' + id++;
+}
+
+function launchStream(emitterVideo, stream) {
+  emitterVideo.volume = 0;
+  emitterVideo.src = window.URL.createObjectURL(stream);
+  emitterVideo.play();
+}
 
 
 function startPeer(initiator) {
@@ -56,18 +102,8 @@ function startPeer(initiator) {
       });
       bindEvents(p);
 
-      let emitterVideo = document.querySelector('#emitter-video');
-      emitterVideo.volume = 0;
-      emitterVideo.src = window.URL.createObjectURL(stream);
-      emitterVideo.play();
+      let emitterVideo = document.querySelector('#' + createVideo());
+      launchStream(emitterVideo, stream);
+
   }, function() {});
 }
-
-// L'auteur de l'appel appelera la méthode startTalk() dès le démarrage
-document.querySelector('#start').addEventListener('click', function(e) {
-    startPeer(true);
-});
-
-document.querySelector('#receive').addEventListener('click', function(e) {
-    startPeer(false);
-});

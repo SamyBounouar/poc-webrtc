@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 let app = require('express')();
 let url = require('url');
 let server = require('http').Server(app);
@@ -74,7 +73,7 @@ io.on('connection', function (socket) {
 
     socket.emit('SUBSCRIBE_SDP', clientsCollection.listClientsSDP());
 });
-=======
+/*
 var http = require('http');
 var url = require('url');
 var fs = require('fs');
@@ -102,4 +101,4 @@ if (page == '/') {
     console.log(page);
 });
 server.listen(8080);
->>>>>>> first version : one initiator & one receiver on one navigator in local
+*/
