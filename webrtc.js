@@ -19,10 +19,50 @@ if (IS_CHROME) {
 
 let socket = io.connect('http://localhost:8080');
 let p;
+let nbClients;
 
 $(function () {
+  socket.on('GET_LIST', function (nb) {
+    let clientIsTheFirst = nb == 0 ? true : false;
+    console.log('clientIsTheFirst : ' + clientIsTheFirst);
+
+    navigator.getUserMedia({
+      video: true,
+      audio: true
+  }, function(stream) {
+      p = new SimplePeer({
+        initiator: clientIsTheFirst,
+        stream: stream,
+        trickle: false
+      });
+      console.log(stream);
+      console.log(p);
+      
+      if (clientIsTheFirst == false) {
+        socket.emit('CREATE_PEER', p, null);
+      }
+      
+      bindEvents(p);
+
+      let emitterVideo = document.querySelector('#' + createVideo(p._id));
+      launchStream(emitterVideo, stream);
+  }, function() {});
+});
+
+  socket.on('SEND_NEW_SDP', function(newSDPs) {
+    console.log('in SEND_NEW_SDP');
+    console.log(newSDPs);
+      newSDPs.forEach(function (sdp) {
+          p.signal(sdp);
+      });
+  });
+
+  
+
+//  let clientIsTheFirst = listClients.length == 0 ? true : false;
+//console.log('clientIsTheFirst : ' + clientIsTheFirst);
   //let p;
-  navigator.getUserMedia({
+/*  navigator.getUserMedia({
       video: true,
       audio: true
   }, function(stream) {
@@ -39,7 +79,7 @@ $(function () {
 
       let emitterVideo = document.querySelector('#' + createVideo(p._id));
       launchStream(emitterVideo, stream);
-  }, function() {});
+  }, function() {});*/
 });
 
 
@@ -68,10 +108,8 @@ $(function () {
       let peer = peerAndSDP['peer'];
       let offer = "{'type':'offer', 'sdp': " + peerAndSDP['sdp'] + "}";
       console.log(offer);
-      console.log(peer);
-      console.log(p);
-      p.signal(offer);
-      console.log(p);
+      /*console.log(peer);
+      peer.signal(offer);*/
       let video = document.querySelector('#' + createVideo(peerAndSDP['peer']['_id']));
 
 
@@ -81,11 +119,13 @@ $(function () {
 
 
 function bindEvents(p) {
+  console.log('in bindEvents');
   p.on('error', function(err) {
       console.log('error', err);
   });
 
   p.on('signal', function(data) {
+    console.log('on signal');
     //$(document).trigger('CONNECT_CHAT', data);
     socket.emit('CREATE_PEER', p, data.sdp);
     //socket.emit('SEND_SDP', p, data.sdp);
@@ -108,7 +148,7 @@ function bindEvents(p) {
 }
 
 function createVideo(peerId) {
-  $('#tchat-room').append('<div class="col-sm-3"><video width="200px" id="video-' + peerId + '"></video></div>');
+  $('#tchat-room').append('<div class="col-sm-3" style="border:solid"><video width="200px" id="video-' + peerId + '"></video></div>');
 
   return 'video-' + peerId;
 }

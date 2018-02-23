@@ -94,24 +94,31 @@ class ClientsCollection {
 let clientsCollection = new ClientsCollection();
 
 io.on('connection', function (socket) {
-  //console.log(clientsCollection.listClientsToString());
+  socket.emit('GET_LIST', clientsCollection.listClients().length);
 
   socket.on('CREATE_PEER', function(peer, sdp) {
     console.log('on createPeer');
     let currentClient = new Client(socket, peer);
     currentClient.setSDP(sdp);
-console.log(currentClient.getPeer());
+//console.log(currentClient.getPeer());
     clientsCollection.addClient(currentClient);
-
+console.log(clientsCollection.listClients().length);
     clientsCollection.listClients().forEach(function(client) {
+
+      let newSDPs = [];
+
       if (currentClient !== client) {
+          console.log('here');
+          newSDPs.push(client.getSDP());
+          client.getSocket().emit('SEND_NEW_SDP', newSDPs);
           client.getSocket().emit('NEW_CLIENT', currentClient.getPeerAndSDP());
       }
     });
-
-    let clientIsTheFirst = clientsCollection.length == 0 ? true : false;
-
   });
+
+
+
+  
 
   /*socket.on('SEND_SDP', function (peer, sdp) {
       let client = clientsCollection.getClientByPeer(peer);
