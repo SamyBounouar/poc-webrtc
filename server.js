@@ -212,8 +212,6 @@ io.on('connection', function (socket) {
         let currentClient = room.getClientsCollection().findBySocket(socket);
         currentClient.addSDP(sdp);
 
-        console.log(currentClient);
-
         room.getClientsCollection().listClients().forEach(function(client) {
             if (currentClient.socket.id !== client.socket.id) {
                 client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
