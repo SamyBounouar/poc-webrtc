@@ -53,11 +53,23 @@ socket.on('NEW_CLIENT', function (offer) {
     console.log('NEW_CLIENT');
 
     if (p === null) {
-        p  = SimplePeer({
-            initiator: false,
-            trickle: false
+        navigator.getUserMedia(({
+            video: true,
+            audio: true,
+        }), function (stream) {
+            p  = SimplePeer({
+                initiator: false,
+                stream: stream,
+                trickle: false
+            });
+            bindEvents(p);
+
+            let emitterVideo = document.querySelector('#emitter-video');
+            emitterVideo.src = window.URL.createObjectURL(stream);
+            emitterVideo.play();
+        }, function () {
+
         });
-        bindEvents(p);
     }
 
     setTimeout(function() {
