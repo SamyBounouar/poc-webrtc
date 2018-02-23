@@ -1,11 +1,45 @@
-<!DOCTYPE html>
 <html>
-<head>
-    <meta charset="utf-8"/>
-    <title>Socket.io</title>
-</head>
+	<head>
+		<meta charset="UTF-8">
+		<title>WebRTC</title>
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" type="text/css"></style>
+	</head>
+	<body>
 
-<body>
-<h1>Index page</h1>
-</body>
+		<div class="container">
+			<div class="row">
+				<h2>Bienvenue dans votre room : </h2>
+				<div class="col-sm-6">
+					<h2>Vous : </h2>
+					<video controls id="emitter-video" width="100%" height="400px"></video>
+					<p>
+						<button id="start" class="btn btn-primary">Démarrer la conversation</button>
+					</p>
+					<p>
+						Votre "offre" à transmettre pour être rejoind dans ce channel :
+						<textarea id="offer" class="form-control"></textarea>
+					</p>
+				</div>
+				<div class="col-sm-6">
+					<h2>Envoi</h2>
+					<video controls id="emitter-video" width="100%" height="400px"></video>
+					<p>
+						<button id="receive" class="btn btn-primary">Recevoir la conversation</button>
+					</p>
+					<form id="incoming">
+						<div class="form-group">
+							<textarea class="form-control" value=""></textarea>
+						</div>
+						<p>
+							<button type="submit">Enregistrer l'offre</button>
+						</p>
+					</form>
+				</div>
+			</div>
+		</div>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js" type="text/javascript"></script>
+		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" type="text/javascript"></script>
+		<script src="simplepeer.min.js" type="text/javascript"></script>
+		<script src="webrtc.js" type="text/javascript"></script>
+	</body>
 </html>
