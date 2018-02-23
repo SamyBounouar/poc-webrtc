@@ -1,14 +1,13 @@
-<<<<<<< HEAD
 let app = require('express')();
 let server = require('http').Server(app);
 let io = require('socket.io')(server);
-var http = require('http');
-var fs = require('fs');
-var url = require('url');
-var port = 8088;
+let http = require('http');
+let fs = require('fs');
+let url = require('url');
+let port = 8088;
 
-var server = http.createServer(function(req, res) {
-    var page = url.parse(req.url).pathname;
+let cliServer = http.createServer(function(req, res) {
+    let page = url.parse(req.url).pathname;
     if (page == '/') {
         fs.readFile('./index.html', 'utf-8', function(error, content) {
            res.writeHead(200, {"Content-Type": "text/html"});
@@ -35,8 +34,7 @@ var server = http.createServer(function(req, res) {
 }).listen(port);
 console.log("Serveur tourne sur http://localhost:"+port);
 
-
-server.listen(port);
+server.listen(8087);
 
 app.get('*', function (req, res) {
     let page = url.parse(req.url).pathname;
@@ -92,16 +90,16 @@ class ClientsCollection {
 let clientsCollection = new ClientsCollection();
 
 io.on('connection', function (socket) {
-  socket.on('SEND_SDP', function (sdp) {
-      let currentClient = new Client(socket, sdp);
-      clientsCollection.addClient(currentClient);
+    socket.on('SEND_SDP', function (sdp) {
+        let currentClient = new Client(socket, sdp);
+        clientsCollection.addClient(currentClient);
 
-      clientsCollection.listClients().forEach(function(client) {
-          if (currentClient !== client) {
-              client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
-          }
+            clientsCollection.listClients().forEach(function(client) {
+            if (currentClient !== client) {
+                client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
+            }
         });
-  });
+    });
 
     socket.emit('SUBSCRIBE_SDP', clientsCollection.listClientsSDP());
 });

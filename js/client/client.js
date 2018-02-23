@@ -1,4 +1,4 @@
-let socket = io.connect('http://192.168.43.74:8080');
+let socket = io.connect('http://localhost:8088');
 
 let clientSDP = Math.random()*100;
 
