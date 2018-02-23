@@ -17,7 +17,7 @@ if (IS_CHROME) {
   RTCSessionDescription = mozRTCSessionDescription;
 }
 
-let socket = io.connect('http://localhost:8080');
+let socket = io.connect('http://192.168.1.137:8080');
 
 $(function () {
   
@@ -26,11 +26,11 @@ $(function () {
 
 
 $(document).on('CONNECT_CHAT', function (e, data) {
-  socket.emit('SEND_SDP', data.sdp);
+ 
 })
 
 $(document).on('DISPLAY_CHAT_ROOM', function (e, data) {
-  debugger
+
   data.forEach(function (sdp) {
     startPeer(false);
   })
@@ -57,7 +57,9 @@ function bindEvents(p) {
   });
 
   p.on('signal', function(data) {
-    $(document).trigger('CONNECT_CHAT', data);
+    //$(document).trigger('CONNECT_CHAT', data);
+    console.log('SEND_SDP', data.sdp);
+     socket.emit('SEND_SDP', data.sdp);
   });
 
   p.on('stream', function(stream) {
@@ -76,7 +78,7 @@ function bindEvents(p) {
   //});
 }
 
-var id = 0;
+var id = 1;
 function createVideo() {
   $('#tchat-room').append('<div class="col-sm-3"><video width="200px" id="video-' + id + '"></video></div>');
 
