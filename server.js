@@ -13,13 +13,18 @@ app.get('*', function (req, res) {
 });
 
 class Client {
-    constructor(socket, sdp) {
+    constructor(socket, peer) {
         this.socket = socket;
-        this.sdp = sdp;
+        this.peer = peer;
+        //this.sdp = sdp;
     }
 
     getSocket() {
         return this.socket;
+    }
+
+    setSDP(sdp) {
+      this.sdp = sdp;
     }
 
     getSDP() {
@@ -28,6 +33,14 @@ class Client {
 
     hasSDP() {
         return this.sdp !== null;
+    }
+
+    getPeer() {
+        return this.peer;
+    }
+
+    getPeerAndSDP() {
+        return {peer: this.peer, sdp: this.sdp};
     }
 }
 
@@ -38,6 +51,19 @@ class ClientsCollection {
 
     addClient(client) {
         this.clients.push(client);
+    }
+
+    getClientByPeer(peer) {
+      console.log('in getClientByPeer');
+      console.log(this.clients.length);
+
+      let res = null;
+      this.clients.forEach(function (client, index) {
+          if (client.getPeer()['_id'] == peer['_id']) {
+            res = client;
+          }
+      });
+      return res;
     }
 
     listClientsSDP() {
@@ -55,24 +81,48 @@ class ClientsCollection {
     listClients() {
         return this.clients;
     }
+
+    listClientsToString() {
+      let str = "";
+      this.clients.forEach(function (client, index) {
+        str += client.getPeer()['_id'] + ' ---- ' + client.getSDP() + '::::::::';
+      });
+      return str;
+    }
 }
 
 let clientsCollection = new ClientsCollection();
 
 io.on('connection', function (socket) {
-  socket.on('SEND_SDP', function (sdp) {
-      let currentClient = new Client(socket, sdp);
-      clientsCollection.addClient(currentClient);
+  //console.log(clientsCollection.listClientsToString());
 
-      clientsCollection.listClients().forEach(function(client) {
-          if (currentClient !== client) {
-              client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
-          }
-        });
+  socket.on('CREATE_PEER', function(peer, sdp) {
+    console.log('on createPeer');
+    let currentClient = new Client(socket, peer);
+    currentClient.setSDP(sdp);
+console.log(currentClient.getPeer());
+    clientsCollection.addClient(currentClient);
+
+    clientsCollection.listClients().forEach(function(client) {
+      if (currentClient !== client) {
+          client.getSocket().emit('NEW_CLIENT', currentClient.getPeerAndSDP());
+      }
+    });
+
+    let clientIsTheFirst = clientsCollection.length == 0 ? true : false;
+
   });
 
-    socket.emit('SUBSCRIBE_SDP', clientsCollection.listClientsSDP());
+  /*socket.on('SEND_SDP', function (peer, sdp) {
+      let client = clientsCollection.getClientByPeer(peer);
+      if (client != null) {
+        console.log('setSDP');
+        client.setSDP(sdp);
+      }
+  });*/
 });
+
+
 /*
 var http = require('http');
 var url = require('url');
