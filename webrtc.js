@@ -19,35 +19,87 @@ if (IS_CHROME) {
 
 let socket = io.connect('http://192.168.1.137:8080');
 
+let currentPeer;
+let peer2;
+let peers = [];
+
 $(function () {
-  
-  startPeer(true);
+  //startPeer(true);
+  navigator.getUserMedia({
+      video: true,
+      audio: true
+  }, function(stream) {
+    currentPeer = new SimplePeer({
+        initiator: true,
+        stream: stream,
+        trickle: false
+    });
+
+    currentPeer.on('error', function(err) {
+      console.log('error', err);
+    });
+
+    currentPeer.on('signal', function(data) {
+    //$(document).trigger('CONNECT_CHAT', data);
+      console.log('SEND_SDP');
+      socket.emit('SEND_SDP', JSON.stringify(data));
+    });
+
+    currentPeer.on('stream', function(stream) {
+      console.log('on stream');
+    });
+
+    let emitterVideo = document.querySelector('#' + createVideo());
+    launchStream(emitterVideo, stream);
+
+  }, function() {});
 })
 
-
-$(document).on('CONNECT_CHAT', function (e, data) {
- 
-})
-
-$(document).on('DISPLAY_CHAT_ROOM', function (e, data) {
-
-  data.forEach(function (sdp) {
-    startPeer(false);
+socket.on('NEW_CLIENT', function (offerJSON) {
+  console.log('NEW CLIENT');
+  var offer = JSON.parse(offerJSON);
+  peer2 = new SimplePeer({
+        initiator: false,
+        trickle: false
   })
-})
+
+  peer2.signal(offer);
+  peer2.on('error', function(err) {
+      console.log('error', err);
+    });
+
+    peer2.on('signal', function(data) {
+      console.log('p2 SEND_SDP');
+      currentPeer.signal(data);
+    });
+
+    peer2.on('stream', function(stream) {
+      console.log('p2 on stream');
+      let emitterVideo = document.querySelector('#' + createVideo());
+      emitterVideo.volume = 0;
+      emitterVideo.src = window.URL.createObjectURL(stream);
+      emitterVideo.play();
+      //launchStream(emitterVideo, stream);
+    });
+
+    
+
+      //startPeer(false);
+});
 
  socket.on('SUBSCRIBE_SDP', function (listSDP) {
     console.log('SUBSCRIBE_SDP', listSDP);
 
     listSDP.forEach(function (sdp) {
-      startPeer(false);
+      //startPeer(false);
     })
   });
 
-  socket.on('NEW_CLIENT', function (sdp) {
-      console.log('NEW CLIENT', sdp);
-      startPeer(false);
-  });
+  /*socket.on('NEW_CLIENT', function (sdp) {
+      console.log('NEW CLIENT');
+
+      //startPeer(false);
+  });*/
 
 let p;
 
@@ -59,7 +111,7 @@ function bindEvents(p) {
   p.on('signal', function(data) {
     //$(document).trigger('CONNECT_CHAT', data);
     console.log('SEND_SDP', data.sdp);
-     socket.emit('SEND_SDP', data.sdp);
+    socket.emit('SEND_SDP', data.sdp);
   });
 
   p.on('stream', function(stream) {

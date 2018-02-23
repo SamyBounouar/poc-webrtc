@@ -73,6 +73,7 @@ io.on('connection', function (socket) {
         clientsCollection.addClient(currentClient);
 
         clientsCollection.listClients().forEach(function(client) {
+          console.log('NEW CLIENT')
             if (currentClient !== client) {
                 client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
             }
