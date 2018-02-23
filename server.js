@@ -43,7 +43,7 @@ class ClientsCollection {
     listClientsSDP() {
         let listSDP = [];
 
-        this.clients.forEach(function (client, index) {
+        this.clients.forEach(function (client) {
             if (client.hasSDP()) {
                 listSDP.push(client.getSDP());
             }
@@ -55,23 +55,35 @@ class ClientsCollection {
     listClients() {
         return this.clients;
     }
+
+    deleteBySocket(socket) {
+        this.clients.forEach(function (client, index) {
+            if (client.getSocket().id === socket.id) {
+                clientsCollection.listClients().splice(index, 1);
+            }
+        });
+    }
 }
 
 let clientsCollection = new ClientsCollection();
 
 io.on('connection', function (socket) {
-  socket.on('SEND_SDP', function (sdp) {
-      let currentClient = new Client(socket, sdp);
-      clientsCollection.addClient(currentClient);
+    socket.on('SEND_SDP', function (sdp) {
+        let currentClient = new Client(socket, sdp);
+        clientsCollection.addClient(currentClient);
 
-      clientsCollection.listClients().forEach(function(client) {
-          if (currentClient !== client) {
-              client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
-          }
+        clientsCollection.listClients().forEach(function(client) {
+            if (currentClient !== client) {
+                client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
+            }
         });
-  });
+    });
 
     socket.emit('SUBSCRIBE_SDP', clientsCollection.listClientsSDP());
+
+    socket.on('disconnect', function () {
+        console.log(clientsCollection.deleteBySocket(socket));
+    });
 });
 /*
 var http = require('http');
