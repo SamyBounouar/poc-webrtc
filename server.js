@@ -2,14 +2,39 @@ let app = require('express')();
 let url = require('url');
 let server = require('http').Server(app);
 let io = require('socket.io')(server);
+let fs = require('fs');
 let port = 8080;
 
 server.listen(port);
 
-app.get('*', function (req, res) {
+app.get('/', function (req, res) {
+    fs.readFile(__dirname + '/index.html', function (err, data) {
+        if (err) {
+            res.writeHead(500);
+            return res.end('Error loading index.html');
+        }
+
+        res.writeHead(200);
+        res.end(data);
+    });
+});
+
+app.get('/:channel', function (req, res) {
+    fs.readFile(__dirname + '/channel.html', function (err, data) {
+        if (err) {
+            res.writeHead(500);
+            return res.end('Error loading channel.html');
+        }
+
+        res.writeHead(200);
+        res.end(data);
+    });
+});
+
+app.get('/js/*', function (req, res) {
     let page = url.parse(req.url).pathname;
-    console.log(page);
-    res.sendfile(__dirname + page);
+    console.log('SOURCE URL', page);
+    res.sendFile(__dirname + page);
 });
 
 class Client {
@@ -27,7 +52,7 @@ class Client {
     }
 
     hasSDP() {
-        return this.sdp !== null;
+        return (this.sdp !== null);
     }
 }
 
@@ -57,31 +82,133 @@ class ClientsCollection {
     }
 
     deleteBySocket(socket) {
+        let result = false;
+        let self = this;
+
         this.clients.forEach(function (client, index) {
             if (client.getSocket().id === socket.id) {
-                clientsCollection.listClients().splice(index, 1);
+                self.listClients().splice(index, 1);
+                result = true;
             }
         });
+
+        return result;
+    }
+
+    findBySocket(socket) {
+        let result = null;
+
+        this.clients.forEach(function (client) {
+            if (client.getSocket().id === socket.id) {
+                result = client;
+            }
+        });
+
+        return result;
     }
 }
 
-let clientsCollection = new ClientsCollection();
+class Room {
+    constructor(name) {
+        this.name = name;
+        this.clients = new ClientsCollection();
+    }
+
+    getName() {
+        return this.name;
+    }
+
+    getClientsCollection() {
+        return this.clients;
+    }
+}
+
+class RoomsCollection {
+    constructor() {
+        this.rooms = [];
+    }
+
+    getRooms() {
+        return this.rooms;
+    }
+
+    add(room) {
+        if (this.isExist(room)) {
+            return this.findByName(room.name);
+        }
+
+        this.rooms.push(room);
+
+        return this;
+    }
+
+    findByName(name) {
+        let result = null;
+
+        this.rooms.forEach(function (room) {
+            if (room.name === name) {
+                result = room;
+            }
+        });
+
+        return result;
+    }
+
+    isExist(room) {
+        return (this.findByName(room.name) !== null);
+    }
+
+    findClientBySocket(socket) {
+        let user = null;
+
+        this.rooms.forEach(function (room) {
+            user = room.findClientBySocket(socket);
+        });
+
+        return user;
+    }
+
+    deleteClientBySocket(socket) {
+        let user = false;
+
+        this.rooms.forEach(function (room) {
+            if (room.getClientsCollection().findBySocket(socket) !== null) {
+                user = room.getClientsCollection().deleteBySocket(socket);
+                user = true;
+            }
+        });
+
+        return user;
+    }
+}
+
+let roomsCollection = new RoomsCollection();
 
 io.on('connection', function (socket) {
-    socket.on('SEND_SDP', function (sdp) {
-        let currentClient = new Client(socket, sdp);
-        clientsCollection.addClient(currentClient);
+    socket.on('SEND_SDP', function (roomName, sdp) {
+        let room = roomsCollection.findByName(roomName);
 
-        clientsCollection.listClients().forEach(function(client) {
+        if (room === null) {
+            room = new Room(roomName);
+            roomsCollection.add(room);
+        }
+
+        socket.join(room.getName());
+
+        let currentClient = new Client(socket, sdp);
+
+        room.getClientsCollection().addClient(currentClient);
+
+        room.getClientsCollection().listClients().forEach(function(client) {
             if (currentClient !== client) {
                 client.getSocket().emit('NEW_CLIENT', currentClient.getSDP());
             }
         });
+
+        socket.emit('SUBSCRIBE_SDP', room.getClientsCollection().listClientsSDP());
     });
 
-    socket.emit('SUBSCRIBE_SDP', clientsCollection.listClientsSDP());
-
     socket.on('disconnect', function () {
-        console.log(clientsCollection.deleteBySocket(socket));
+        roomsCollection.deleteClientBySocket(socket);
     });
 });
